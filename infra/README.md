@@ -6,5 +6,14 @@ AWS Infrastructure as Code for:
 - Aurora Serverless v2 provisioning
 - Secrets & configuration wiring
 
-Implementation will be added in a later work item.
+## Current state
+
+This repo currently contains an AWS CDK (Python) skeleton (not yet fully wired).
+
+Planned next steps:
+- Aurora Serverless v2 (PostgreSQL) cluster + init schema/migrations
+- FastAPI API Gateway + auth wiring
+- Lambda functions for each worker job + EventBridge schedules
+- Build/deploy wiring for frontend (Amplify/CloudFront) in a later item
+
 
