@@ -1,5 +1,6 @@
 import tseslint from '@typescript-eslint/eslint-plugin';
 import tsParser from '@typescript-eslint/parser';
+import eslintConfigPrettier from 'eslint-config-prettier';
 
 export default [
   {
@@ -15,6 +16,7 @@ export default [
     },
     rules: {
       ...tseslint.configs.recommended.rules,
+      ...(eslintConfigPrettier?.rules ?? {}),
     },
   },
 ];
