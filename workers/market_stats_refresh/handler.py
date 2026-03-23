@@ -1,7 +1,8 @@
+"""Worker: refresh eBay market statistics (stub)."""
+
 from typing import Any
 
 
 def handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
-    # Stub worker entrypoint.
-    # Next step will connect to eBay Browse/Analytics APIs and persist results to Aurora.
+    """AWS Lambda entrypoint for `market-stats-refresh` (stub)."""
     return {"ok": True, "job_type": "market-stats-refresh"}

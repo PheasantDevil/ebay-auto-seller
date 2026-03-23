@@ -9,5 +9,5 @@ Planned Lambdas:
 - `repricing`: update fixed price on eBay based on profit simulation rules
 - `orders-sync`: import sales/orders and finalize profit reporting
 
-Initial scaffold will be added later.
+Initial scaffold will be added later. Current state: worker handler stubs added under `workers/*/handler.py`.
 

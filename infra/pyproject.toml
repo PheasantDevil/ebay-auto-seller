@@ -2,7 +2,10 @@
 name = "ebay-auto-seller-infra"
 version = "0.1.0"
 requires-python = ">=3.11"
-dependencies = []
+dependencies = [
+  "aws-cdk-lib",
+  "constructs",
+]
 
 [tool.ruff]
 line-length = 100

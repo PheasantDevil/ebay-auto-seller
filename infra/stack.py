@@ -14,6 +14,7 @@ class EbayAutoSellerStack(Stack):
     """
 
     def __init__(self, scope: Construct, construct_id: str, **kwargs) -> None:
+        """Initialize the CDK stack skeleton (no resources wired yet)."""
         super().__init__(scope, construct_id, **kwargs)
 
         # TODO: define Aurora + migration/init, then wire API/worker Lambdas.

@@ -8,16 +8,23 @@ from sourcing_scan.handler import handler as sourcing_scan
 
 
 def _ctx() -> Any:
+    """Mocked Lambda context placeholder (stub)."""
     return None
 
 
 def _event() -> dict[str, Any]:
+    """Mocked Lambda event placeholder (stub)."""
     return {}
 
 
 def test_worker_stubs_smoke():
-    assert market_stats_refresh(_event(), _ctx())["ok"] is True
-    assert sourcing_scan(_event(), _ctx())["ok"] is True
-    assert inventory_sync_ebay(_event(), _ctx())["ok"] is True
-    assert repricing(_event(), _ctx())["ok"] is True
-    assert orders_sync(_event(), _ctx())["ok"] is True
+    """Smoke test that all worker stubs return a success payload."""
+    handlers = [
+        market_stats_refresh,
+        sourcing_scan,
+        inventory_sync_ebay,
+        repricing,
+        orders_sync,
+    ]
+    for worker_handler in handlers:
+        assert worker_handler(_event(), _ctx())["ok"] is True

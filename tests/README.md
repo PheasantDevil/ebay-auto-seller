@@ -5,5 +5,5 @@ Planned test strategy:
 - Integration tests for API request/response mapping
 - E2E tests for frontend flows (Playwright)
 
-Initial scaffold will be added later.
+Initial scaffold will be added later. Current state: smoke tests exist for the API health endpoint and worker stubs.
 
