@@ -1,0 +1,6 @@
+fastapi
+mangum
+httpx
+pytest
+ruff
+

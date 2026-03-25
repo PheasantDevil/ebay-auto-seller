@@ -1,0 +1,89 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  api:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Create venv and install dependencies
+        run: |
+          python -m venv .ci-venv
+          ./.ci-venv/bin/pip install --upgrade pip
+          ./.ci-venv/bin/pip install -r services/api/requirements-dev.txt
+
+      - name: Backend API - format
+        run: npm run ci:api:format
+
+      - name: Backend API - lint
+        run: npm run ci:api:lint
+
+      - name: Backend API - tests
+        run: npm run ci:api:test
+
+  workers:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Create venv and install dependencies
+        run: |
+          python -m venv .ci-venv
+          ./.ci-venv/bin/pip install --upgrade pip
+          ./.ci-venv/bin/pip install -r workers/requirements-dev.txt
+
+      - name: Workers - format
+        run: npm run ci:workers:format
+
+      - name: Workers - lint
+        run: npm run ci:workers:lint
+
+      - name: Workers - tests
+        run: npm run ci:workers:test
+
+  web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install frontend deps
+        working-directory: apps/web
+        run: npm ci
+
+      - name: Web - format
+        run: npm run ci:web:format
+
+      - name: Web - lint
+        run: npm run ci:web:lint
+
+      - name: Web - tests
+        run: npm run ci:web:test
+

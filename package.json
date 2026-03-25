@@ -1,0 +1,18 @@
+{
+  "name": "ebay-auto-seller",
+  "private": true,
+  "scripts": {
+    "ci:api:format": "cd services/api && ../../.ci-venv/bin/ruff format --check .",
+    "ci:api:lint": "cd services/api && ../../.ci-venv/bin/ruff check .",
+    "ci:api:test": "cd services/api && ../../.ci-venv/bin/python -m pytest",
+
+    "ci:workers:format": "cd workers && ../.ci-venv/bin/ruff format --check .",
+    "ci:workers:lint": "cd workers && ../.ci-venv/bin/ruff check .",
+    "ci:workers:test": "cd workers && ../.ci-venv/bin/python -m pytest",
+
+    "ci:web:format": "cd apps/web && npm run format:check",
+    "ci:web:lint": "cd apps/web && npm run lint",
+    "ci:web:test": "cd apps/web && npm test"
+  }
+}
+
