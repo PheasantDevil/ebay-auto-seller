@@ -9,5 +9,11 @@ Planned Lambdas:
 - `repricing`: update fixed price on eBay based on profit simulation rules
 - `orders-sync`: import sales/orders and finalize profit reporting
 
-Initial scaffold will be added later. Current state: worker handler stubs added under `workers/*/handler.py`.
+Current state:
+- Worker handler stubs are implemented under `workers/*/handler.py`.
+- `market-stats-refresh` now has a baseline implementation:
+  - reads encrypted OAuth token from DB
+  - refreshes token when needed
+  - queries eBay Browse API (listing-price proxy)
+  - writes `market_stats` and `job_runs`
 
