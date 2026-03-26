@@ -77,7 +77,7 @@ async function loadCandidates(): Promise<void> {
   pending.value = true;
   error.value = null;
   try {
-    const apiBaseUrl = runtimeConfig.apiBaseUrl as string;
+    const apiBaseUrl = runtimeConfig.public.apiBaseUrl as string;
     const url = apiBaseUrl ? `${apiBaseUrl}/research/candidates` : '/research/candidates';
 
     const res = await $fetch<ResearchCandidatesResponse>(url, {
@@ -89,6 +89,7 @@ async function loadCandidates(): Promise<void> {
     });
     candidates.value = res.candidates;
   } catch (e) {
+    candidates.value = [];
     error.value = e instanceof Error ? e.message : String(e);
   } finally {
     pending.value = false;

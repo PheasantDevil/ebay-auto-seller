@@ -18,14 +18,19 @@ def calculate_profit_usd(
     - net profit: avg_sold_price_usd - (item_price_usd + shipping + fees + tax)
     """
 
-    ebay_fees_usd = avg_sold_price_usd * ebay_fee_rate
+    if any(v < 0 for v in (avg_sold_price_usd, item_price_usd, estimated_shipping_usd)):
+        raise ValueError("Monetary amounts must be non-negative.")
+    if ebay_fee_rate < 0 or sales_tax_rate_assumed < 0:
+        raise ValueError("Rate values must be non-negative.")
+
+    ebay_fee_usd = avg_sold_price_usd * ebay_fee_rate
     sales_tax_usd = avg_sold_price_usd * sales_tax_rate_assumed
     net_profit_usd = avg_sold_price_usd - (
-        item_price_usd + estimated_shipping_usd + ebay_fees_usd + sales_tax_usd
+        item_price_usd + estimated_shipping_usd + ebay_fee_usd + sales_tax_usd
     )
 
     return {
-        "ebay_fee_usd": ebay_fees_usd,
+        "ebay_fee_usd": ebay_fee_usd,
         "sales_tax_usd": sales_tax_usd,
         "net_profit_usd": net_profit_usd,
     }

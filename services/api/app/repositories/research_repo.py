@@ -26,6 +26,10 @@ class ResearchRepository:
     def __init__(self, database_url: str) -> None:
         """Create repository with a PostgreSQL database connection string."""
         self._database_url = database_url
+        self._connect_timeout_sec = int(__import__("os").environ.get("DB_CONNECT_TIMEOUT_SEC", "5"))
+        self._statement_timeout_ms = int(
+            __import__("os").environ.get("DB_STATEMENT_TIMEOUT_MS", "5000")
+        )
 
     def fetch_research_rows(
         self, *, tenant_id: str, limit_variants: int | None = None
@@ -69,8 +73,6 @@ class ResearchRepository:
         FROM product_variants pv
         JOIN products p
           ON p.id = pv.product_id AND p.tenant_id = pv.tenant_id
-        JOIN inventory_current ic
-          ON ic.variant_id = pv.id AND ic.tenant_id = pv.tenant_id AND ic.on_hand_qty > 0
         JOIN latest_market_stats lm
           ON lm.variant_id = pv.id AND lm.tenant_id = pv.tenant_id
         JOIN pricing_assumptions pa
@@ -78,6 +80,13 @@ class ResearchRepository:
         JOIN sourcing_item_state_current ss
           ON ss.variant_id = pv.id AND ss.tenant_id = pv.tenant_id AND ss.source_stock_qty > 0
         WHERE pv.tenant_id = %(tenant_id)s
+          AND EXISTS (
+            SELECT 1
+            FROM inventory_current ic
+            WHERE ic.variant_id = pv.id
+              AND ic.tenant_id = pv.tenant_id
+              AND ic.on_hand_qty > 0
+          )
         {limit_clause}
         """
 
@@ -85,7 +94,11 @@ class ResearchRepository:
         if limit_variants is not None:
             params["limit"] = int(limit_variants)
 
-        with psycopg.connect(self._database_url) as conn:
+        with psycopg.connect(
+            self._database_url,
+            connect_timeout=self._connect_timeout_sec,
+            options=f"-c statement_timeout={self._statement_timeout_ms}",
+        ) as conn:
             with conn.cursor() as cur:
                 cur.execute(sql, params)
                 rows = cur.fetchall()

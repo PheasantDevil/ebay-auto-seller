@@ -88,7 +88,9 @@ def test_get_research_candidates_selects_best_positive_profit():
         """Override FastAPI dependency with fake in-memory repo."""
         return FakeResearchRepository(rows=[row_a1, row_a2, row_b1])
 
-    app.dependency_overrides[get_research_repository] = _override_repo
+    dep_key = get_research_repository
+    orig_override = app.dependency_overrides.get(dep_key)
+    app.dependency_overrides[dep_key] = _override_repo
     try:
         client = TestClient(app)
         resp = client.get(
@@ -116,4 +118,7 @@ def test_get_research_candidates_selects_best_positive_profit():
         )
         assert candidate["net_profit_usd"] == float(expected["net_profit_usd"])
     finally:
-        app.dependency_overrides.clear()
+        if orig_override is None:
+            del app.dependency_overrides[dep_key]
+        else:
+            app.dependency_overrides[dep_key] = orig_override

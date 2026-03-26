@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from decimal import Decimal
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Header, HTTPException, Query
 from pydantic import BaseModel
 
 from app.domain.pricing import calculate_profit_usd
@@ -103,11 +103,17 @@ router = APIRouter(prefix="/research", tags=["research"])
 def get_research_candidates(
     tenant_id: str = Query(..., description="Tenant id (UUID)."),
     limit: int = Query(50, ge=1, le=500, description="Max number of candidates to return."),
+    x_tenant_id: str | None = Header(default=None, alias="X-Tenant-Id"),
     repo: ResearchRepository = RESEARCH_REPOSITORY_DEP,
 ) -> ResearchCandidatesResponse:
     """Return best profit-positive candidates for the given tenant."""
 
-    rows = repo.fetch_research_rows(tenant_id=tenant_id, limit_variants=None)
+    if x_tenant_id is not None and x_tenant_id != tenant_id:
+        raise HTTPException(status_code=403, detail="tenant_id mismatch.")
+
+    # Cap DB rows returned to avoid unbounded fetch.
+    fetch_limit = min(2000, max(100, limit * 20))
+    rows = repo.fetch_research_rows(tenant_id=tenant_id, limit_variants=fetch_limit)
     selected_rows = select_best_candidate(rows)
 
     candidates: list[ResearchCandidate] = []
