@@ -1,6 +1,7 @@
 fastapi
 mangum
 httpx
+psycopg[binary]
 pytest
 ruff
 
