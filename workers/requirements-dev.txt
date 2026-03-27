@@ -1,3 +1,5 @@
+httpx
+psycopg[binary]
 pytest
 ruff
 

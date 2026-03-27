@@ -7,7 +7,8 @@ requires-python = ">=3.11"
 dependencies = [
   "fastapi",
   "mangum",
-  "psycopg[binary]"
+  "httpx",
+  "psycopg[binary]",
 ]
 
 [project.optional-dependencies]

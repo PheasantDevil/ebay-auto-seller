@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "AWS Lambda workers for eBay US-to-US automation"
 readme = "README.md"
 requires-python = ">=3.11"
-dependencies = []
+dependencies = ["httpx", "psycopg[binary]"]
 
 [project.optional-dependencies]
 dev = ["pytest", "ruff"]
