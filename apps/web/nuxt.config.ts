@@ -5,7 +5,9 @@ export default defineNuxtConfig({
     typeCheck: true,
   },
   runtimeConfig: {
-    apiBaseUrl: process.env.API_BASE_URL ?? '',
+    public: {
+      apiBaseUrl: process.env.NUXT_PUBLIC_API_BASE_URL ?? '',
+    },
   },
   app: {
     head: {
