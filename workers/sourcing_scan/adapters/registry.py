@@ -6,6 +6,11 @@ from typing import Protocol
 
 from sourcing_scan.adapters.base import SupplierState
 from sourcing_scan.adapters.http_json import HttpJsonSourcingFetcher
+from sourcing_scan.adapters.marketplace_fetchers import (
+    AmazonSourcingFetcher,
+    TargetSourcingFetcher,
+    WalmartSourcingFetcher,
+)
 from sourcing_scan.repository import SourcingDbItem
 
 
@@ -13,11 +18,14 @@ class SourcingRowFetcher(Protocol):
     def fetch(self, *, tenant_id: str, row: SourcingDbItem) -> SupplierState | None: ...
 
 
-_PLACEHOLDER_TYPES = frozenset({"amazon", "walmart", "target"})
+_PLACEHOLDER_TYPES: frozenset[str] = frozenset()
 _EVENT_ONLY_TYPES = frozenset({"custom"})
 
 _FETCHERS: dict[str, SourcingRowFetcher] = {
     "http_json": HttpJsonSourcingFetcher(),
+    "amazon": AmazonSourcingFetcher(),
+    "walmart": WalmartSourcingFetcher(),
+    "target": TargetSourcingFetcher(),
 }
 
 

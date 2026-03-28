@@ -87,28 +87,42 @@ def is_safe_sourcing_http_url(url: str) -> bool:
     return all(ip.is_global for ip in ips)
 
 
+def fetch_supplier_state_from_get_url(
+    *,
+    url: str,
+    sourcing_source_item_id: str,
+    variant_id: str,
+) -> SupplierState | None:
+    """GET JSON from url (after SSRF checks); same body contract as ``http_json``."""
+    if not url or not is_safe_sourcing_http_url(url):
+        return None
+
+    timeout = float(os.environ.get("SOURCING_HTTP_TIMEOUT_SEC", "15"))
+    ua = os.environ.get(
+        "SOURCING_HTTP_USER_AGENT",
+        "ebay-auto-seller-sourcing-scan/1.0",
+    )
+    with httpx.Client(timeout=timeout) as client:
+        res = client.get(url, headers={"User-Agent": ua})
+        res.raise_for_status()
+        body = res.json()
+
+    if not isinstance(body, dict):
+        return None
+    return supplier_state_from_http_json(
+        sourcing_source_item_id=sourcing_source_item_id,
+        variant_id=variant_id,
+        payload=body,
+    )
+
+
 class HttpJsonSourcingFetcher:
     """GET source_url and parse JSON body into SupplierState."""
 
     def fetch(self, *, tenant_id: str, row: SourcingDbItem) -> SupplierState | None:
         _ = tenant_id
-        if not row.source_url or not is_safe_sourcing_http_url(row.source_url):
-            return None
-
-        timeout = float(os.environ.get("SOURCING_HTTP_TIMEOUT_SEC", "15"))
-        ua = os.environ.get(
-            "SOURCING_HTTP_USER_AGENT",
-            "ebay-auto-seller-sourcing-scan/1.0",
-        )
-        with httpx.Client(timeout=timeout) as client:
-            res = client.get(row.source_url, headers={"User-Agent": ua})
-            res.raise_for_status()
-            body = res.json()
-
-        if not isinstance(body, dict):
-            return None
-        return supplier_state_from_http_json(
+        return fetch_supplier_state_from_get_url(
+            url=row.source_url,
             sourcing_source_item_id=row.sourcing_source_item_id,
             variant_id=row.variant_id,
-            payload=body,
         )
