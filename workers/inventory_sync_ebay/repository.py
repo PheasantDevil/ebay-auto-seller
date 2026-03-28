@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
+from typing import Any
 
 import psycopg
 
@@ -13,6 +14,7 @@ class ListingRow:
     variant_id: str
     current_qty: int
     listing_status: str
+    policy: dict[str, Any] | None
 
 
 class InventorySyncEbayRepository:
@@ -68,7 +70,8 @@ class InventorySyncEbayRepository:
                   ebay_item_id,
                   variant_id::text,
                   quantity,
-                  listing_status
+                  listing_status,
+                  policy
                 FROM ebay_listings
                 WHERE tenant_id=%(tenant_id)s
                   AND listing_status='active'
@@ -85,6 +88,7 @@ class InventorySyncEbayRepository:
                 variant_id=row[2],
                 current_qty=int(row[3]),
                 listing_status=row[4],
+                policy=_as_policy_dict(row[5]),
             )
             for row in rows
         ]
@@ -155,3 +159,11 @@ class InventorySyncEbayRepository:
                     "new_qty": int(desired_qty),
                 },
             )
+
+
+def _as_policy_dict(value: object) -> dict[str, Any] | None:
+    if value is None:
+        return None
+    if isinstance(value, dict):
+        return dict(value)
+    return None
