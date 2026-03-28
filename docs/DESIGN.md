@@ -90,7 +90,7 @@
 | `sourcing-scan` | DB アクティブ行 ＋ `http_json`、イベント `custom`、SSRF 対策・`last_fetched_at` ローテーション。プレースホルダ型は未実装。 |
 | `inventory-sync-ebay` | `inventory_current` → eBay 数量更新、フラグで Sell Inventory API 呼び出し。 |
 | `repricing` | 前提・ソーシング・市場 stats から固定価格更新。 |
-| `orders-sync` | イベント `items[]` による upsert。**eBay REST 取り込みは第 1 波の先頭タスク。** |
+| `orders-sync` | イベント `items[]` による upsert。`source: "ebay_fulfillment"` で Sell Fulfillment `getOrders` 同期（第 1 波・項番 1 完了）。 |
 
 ---
 
@@ -107,3 +107,4 @@
 | 日付 | 内容 |
 |------|------|
 | 2026-03-28 | 初版: 第 1〜3 波、ワーカー深掘りの固定順、第 3 波にデプロイ先構築を明記。 |
+| 2026-03-28 | 第 1 波項番 1: `orders-sync` eBay Fulfillment REST 取り込み。 |

@@ -18,6 +18,7 @@ Python (FastAPI) service intended to run behind AWS API Gateway (Lambda-style de
   - `EBAY_REDIRECT_URI`
   - `EBAY_TOKEN_ENCRYPTION_KEY`
   - `DATABASE_URL`
+  - Default app scope includes `sell.fulfillment.readonly` (see workers `common/ebay_oauth.py`); sellers must re-authorize if tokens were issued before that scope was added.
 
 ## AWS Lambda
 

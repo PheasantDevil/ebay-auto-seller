@@ -10,6 +10,13 @@ def handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
 
     For compatibility with existing smoke tests, missing tenant_id returns a
     skipped response instead of raising.
+
+    Event payload:
+    - Default: ``items`` list (manual / bridge) as before.
+    - ``source``: ``\"ebay_fulfillment\"`` — fetch via Sell Fulfillment getOrders
+      (needs OAuth scope ``sell.fulfillment.readonly`` and tenant tokens).
+      Optional: ``hours_back`` (default from env ``ORDERS_EBAY_SYNC_HOURS_BACK``,
+      use ``0`` for eBay default window / no lastmodified filter), ``page_limit``.
     """
     tenant_id = event.get("tenant_id")
     if not tenant_id:
