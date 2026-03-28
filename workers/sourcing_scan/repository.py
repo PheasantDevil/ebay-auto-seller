@@ -17,6 +17,7 @@ class SourcingDbItem:
     variant_id: str
     source_type: str
     source_url: str
+    external_product_id: str | None
 
 
 class SourcingScanRepository:
@@ -101,7 +102,8 @@ class SourcingScanRepository:
                   ssi.id::text,
                   ssi.variant_id::text,
                   lower(ss.source_type) AS source_type,
-                  ssi.source_url
+                  ssi.source_url,
+                  ssi.external_product_id
                 FROM sourcing_source_items ssi
                 JOIN sourcing_sources ss
                   ON ss.id = ssi.sourcing_source_id
@@ -123,6 +125,7 @@ class SourcingScanRepository:
                 variant_id=row[1],
                 source_type=str(row[2]),
                 source_url=str(row[3]),
+                external_product_id=None if row[4] is None else str(row[4]),
             )
             for row in rows
         ]
