@@ -108,7 +108,10 @@ class SourcingScanRepository:
                  AND ss.tenant_id = ssi.tenant_id
                 WHERE ssi.tenant_id = %(tenant_id)s
                   AND ssi.active = TRUE
-                ORDER BY ssi.updated_at DESC NULLS LAST, ssi.created_at DESC
+                ORDER BY
+                  COALESCE(ssi.last_fetched_at, to_timestamp(0)) ASC,
+                  ssi.updated_at DESC NULLS LAST,
+                  ssi.created_at DESC
                 LIMIT %(limit)s
                 """,
                 {"tenant_id": tenant_id, "limit": int(limit)},
@@ -123,6 +126,27 @@ class SourcingScanRepository:
             )
             for row in rows
         ]
+
+    def touch_sourcing_items_last_fetched_at(
+        self,
+        conn: psycopg.Connection,
+        *,
+        tenant_id: str,
+        sourcing_source_item_ids: list[str],
+    ) -> None:
+        if not sourcing_source_item_ids:
+            return
+        placeholders = ", ".join(["%s"] * len(sourcing_source_item_ids))
+        with conn.cursor() as cur:
+            cur.execute(
+                f"""
+                UPDATE sourcing_source_items
+                SET last_fetched_at = now()
+                WHERE tenant_id = %s
+                  AND id IN ({placeholders})
+                """,
+                [tenant_id, *sourcing_source_item_ids],
+            )
 
     def upsert_supplier_state_current(
         self,

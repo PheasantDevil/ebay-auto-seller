@@ -42,6 +42,7 @@ class SourcingScanService:
 
                 event_adapter = CustomEventAdapter(event)
                 event_states = event_adapter.fetch_states(tenant_id=tenant_id, limit=max_items)
+                event_item_ids = {s.sourcing_source_item_id for s in event_states}
 
                 db_rows = self._repo.fetch_active_sourcing_items(
                     conn, tenant_id=tenant_id, limit=max_items
@@ -50,9 +51,14 @@ class SourcingScanService:
                 skipped_placeholder = 0
                 skipped_event_only = 0
                 skipped_unknown_type = 0
+                skipped_superseded_by_event = 0
                 http_fetch_errors = 0
+                attempted_fetch_item_ids: list[str] = []
 
                 for row in db_rows:
+                    if row.sourcing_source_item_id in event_item_ids:
+                        skipped_superseded_by_event += 1
+                        continue
                     stype = row.source_type
                     if is_placeholder_source_type(stype):
                         skipped_placeholder += 1
@@ -64,6 +70,7 @@ class SourcingScanService:
                     if fetcher is None:
                         skipped_unknown_type += 1
                         continue
+                    attempted_fetch_item_ids.append(row.sourcing_source_item_id)
                     try:
                         st = fetcher.fetch(tenant_id=tenant_id, row=row)
                     except Exception:  # noqa: BLE001
@@ -71,6 +78,12 @@ class SourcingScanService:
                         continue
                     if st is not None:
                         db_states.append(st)
+
+                self._repo.touch_sourcing_items_last_fetched_at(
+                    conn,
+                    tenant_id=tenant_id,
+                    sourcing_source_item_ids=attempted_fetch_item_ids,
+                )
 
                 states = _merge_supplier_states([db_states, event_states])
 
@@ -128,6 +141,7 @@ class SourcingScanService:
                     "skipped_placeholder_sources": skipped_placeholder,
                     "skipped_event_only_sources": skipped_event_only,
                     "skipped_unknown_source_type": skipped_unknown_type,
+                    "skipped_superseded_by_event": skipped_superseded_by_event,
                     "http_fetch_errors": http_fetch_errors,
                 }
             except Exception as exc:  # noqa: BLE001

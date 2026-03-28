@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+import ipaddress
 import os
+import socket
 from decimal import Decimal
 from typing import Any
+from urllib.parse import urlparse
 
 import httpx
 
@@ -39,12 +42,57 @@ def supplier_state_from_http_json(
         return None
 
 
+def _allowed_hosts_from_env() -> frozenset[str] | None:
+    raw = os.environ.get("SOURCING_HTTP_ALLOWED_HOSTS", "").strip()
+    if not raw:
+        return None
+    parts = {h.strip().lower() for h in raw.split(",") if h.strip()}
+    return frozenset(parts) if parts else None
+
+
+def _resolved_endpoint_ips(hostname: str) -> list[ipaddress.IPv4Address | ipaddress.IPv6Address]:
+    try:
+        addr = ipaddress.ip_address(hostname)
+        return [addr]
+    except ValueError:
+        pass
+    infos = socket.getaddrinfo(hostname, None, type=socket.SOCK_STREAM)
+    out: list[ipaddress.IPv4Address | ipaddress.IPv6Address] = []
+    for info in infos:
+        ip_str = info[4][0]
+        out.append(ipaddress.ip_address(ip_str))
+    return out
+
+
+def is_safe_sourcing_http_url(url: str) -> bool:
+    """Reject SSRF-prone targets (non-public IPs) unless allowlisted by host name."""
+    if not url.startswith(("http://", "https://")):
+        return False
+    parsed = urlparse(url)
+    host = parsed.hostname
+    if not host:
+        return False
+
+    allow = _allowed_hosts_from_env()
+    host_l = host.lower()
+    if allow is not None and host_l not in allow:
+        return False
+
+    try:
+        ips = _resolved_endpoint_ips(host)
+    except OSError:
+        return False
+    if not ips:
+        return False
+    return all(ip.is_global for ip in ips)
+
+
 class HttpJsonSourcingFetcher:
     """GET source_url and parse JSON body into SupplierState."""
 
     def fetch(self, *, tenant_id: str, row: SourcingDbItem) -> SupplierState | None:
         _ = tenant_id
-        if not row.source_url or not row.source_url.startswith(("http://", "https://")):
+        if not row.source_url or not is_safe_sourcing_http_url(row.source_url):
             return None
 
         timeout = float(os.environ.get("SOURCING_HTTP_TIMEOUT_SEC", "15"))
