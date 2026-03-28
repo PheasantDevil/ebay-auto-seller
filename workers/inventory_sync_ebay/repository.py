@@ -124,7 +124,7 @@ class InventorySyncEbayRepository:
                   old_qty, new_qty, reason, context
                 )
                 VALUES (
-                  %(tenant_id)s, %(ebay_listing_id)s, %(ebay_item_id)s, 'quantity',
+                  %(tenant_id)s, %(ebay_listing_id)s, %(ebay_item_id)s, 'inventory_sync',
                   %(idempotency_key)s,
                   %(old_qty)s, %(new_qty)s, %(reason)s, %(context)s::jsonb
                 )
