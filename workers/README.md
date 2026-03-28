@@ -10,10 +10,9 @@ Planned Lambdas:
 - `orders-sync`: import sales/orders and finalize profit reporting
 
 Current state:
-- Worker handler stubs are implemented under `workers/*/handler.py`.
-- `market-stats-refresh` now has a baseline implementation:
-  - reads encrypted OAuth token from DB
-  - refreshes token when needed
-  - queries eBay Browse API (listing-price proxy)
-  - writes `market_stats` and `job_runs`
+- `market-stats-refresh`: OAuth + Browse API proxy → `market_stats` + `job_runs`
+- `sourcing-scan`: event-driven `custom` adapter → `sourcing_item_state_*` + `inventory_current`
+- `inventory-sync-ebay`: `inventory_current` → `ebay_listings.quantity` + `ebay_listing_updates` (`inventory_sync`)
+- `repricing`: `pricing_assumptions` + best sourcing row + latest `market_stats` → `ebay_listings.fixed_price_usd` + `ebay_listing_updates` (`repricing`)
+- Stubs: `orders-sync` (next in sequence)
 
