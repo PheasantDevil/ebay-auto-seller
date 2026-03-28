@@ -14,5 +14,5 @@ Current state:
 - `sourcing-scan`: event-driven `custom` adapter → `sourcing_item_state_*` + `inventory_current`
 - `inventory-sync-ebay`: `inventory_current` → `ebay_listings.quantity` + `ebay_listing_updates` (`inventory_sync`)
 - `repricing`: `pricing_assumptions` + best sourcing row + latest `market_stats` → `ebay_listings.fixed_price_usd` + `ebay_listing_updates` (`repricing`)
-- Stubs: `orders-sync` (next in sequence)
+- `orders-sync`: event `items[]` → `orders` upsert (`tenant_id` + `ebay_order_id`); optional eBay REST ingest later
 
