@@ -25,7 +25,8 @@ def get_user_access_token(
         (
             "https://api.ebay.com/oauth/api_scope "
             "https://api.ebay.com/oauth/api_scope/buy.marketplace.insights "
-            "https://api.ebay.com/oauth/api_scope/sell.inventory"
+            "https://api.ebay.com/oauth/api_scope/sell.inventory "
+            "https://api.ebay.com/oauth/api_scope/sell.fulfillment.readonly"
         ),
     )
     token_url = os.environ.get(
