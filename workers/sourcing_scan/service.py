@@ -1,9 +1,16 @@
 from __future__ import annotations
 
 from collections import defaultdict
+from collections.abc import Iterable
 
 from common.db import connect
+from sourcing_scan.adapters.base import SupplierState
 from sourcing_scan.adapters.custom import CustomEventAdapter
+from sourcing_scan.adapters.registry import (
+    get_fetcher,
+    is_event_only_source_type,
+    is_placeholder_source_type,
+)
 from sourcing_scan.logic import VariantInventoryInput, compute_on_hand_qty
 from sourcing_scan.repository import SourcingScanRepository
 
@@ -33,8 +40,39 @@ class SourcingScanService:
                     conn, tenant_id=tenant_id, warehouse_id=warehouse_id
                 )
 
-                adapter = CustomEventAdapter(event)
-                states = adapter.fetch_states(tenant_id=tenant_id, limit=max_items)
+                event_adapter = CustomEventAdapter(event)
+                event_states = event_adapter.fetch_states(tenant_id=tenant_id, limit=max_items)
+
+                db_rows = self._repo.fetch_active_sourcing_items(
+                    conn, tenant_id=tenant_id, limit=max_items
+                )
+                db_states: list[SupplierState] = []
+                skipped_placeholder = 0
+                skipped_event_only = 0
+                skipped_unknown_type = 0
+                http_fetch_errors = 0
+
+                for row in db_rows:
+                    stype = row.source_type
+                    if is_placeholder_source_type(stype):
+                        skipped_placeholder += 1
+                        continue
+                    if is_event_only_source_type(stype):
+                        skipped_event_only += 1
+                        continue
+                    fetcher = get_fetcher(stype)
+                    if fetcher is None:
+                        skipped_unknown_type += 1
+                        continue
+                    try:
+                        st = fetcher.fetch(tenant_id=tenant_id, row=row)
+                    except Exception:  # noqa: BLE001
+                        http_fetch_errors += 1
+                        continue
+                    if st is not None:
+                        db_states.append(st)
+
+                states = _merge_supplier_states([db_states, event_states])
 
                 stock_by_variant: dict[str, int] = defaultdict(int)
                 for state in states:
@@ -50,8 +88,6 @@ class SourcingScanService:
                         job_run_id=job_run_id,
                         state=state,
                     )
-                    # If multiple sources exist for the same variant, use the max stock
-                    # to represent "we can source from the best available supplier".
                     stock_by_variant[state.variant_id] = max(
                         stock_by_variant[state.variant_id], int(state.source_stock_qty)
                     )
@@ -87,6 +123,12 @@ class SourcingScanService:
                     "job_run_id": job_run_id,
                     "updated_supplier_items": len(states),
                     "updated_inventory_variants": updated_inventory,
+                    "from_event_items": len(event_states),
+                    "from_db_fetch": len(db_states),
+                    "skipped_placeholder_sources": skipped_placeholder,
+                    "skipped_event_only_sources": skipped_event_only,
+                    "skipped_unknown_source_type": skipped_unknown_type,
+                    "http_fetch_errors": http_fetch_errors,
                 }
             except Exception as exc:  # noqa: BLE001
                 self._repo.finish_job_run(
@@ -97,3 +139,12 @@ class SourcingScanService:
                 )
                 conn.commit()
                 raise
+
+
+def _merge_supplier_states(groups: Iterable[list[SupplierState]]) -> list[SupplierState]:
+    """Later groups override earlier rows with the same sourcing_source_item_id."""
+    by_item: dict[str, SupplierState] = {}
+    for group in groups:
+        for state in group:
+            by_item[state.sourcing_source_item_id] = state
+    return list(by_item.values())

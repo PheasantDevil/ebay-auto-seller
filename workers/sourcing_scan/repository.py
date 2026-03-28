@@ -10,9 +10,13 @@ from sourcing_scan.adapters.base import SupplierState
 
 
 @dataclass(frozen=True)
-class SourceItemRow:
+class SourcingDbItem:
+    """One active sourcing_source_item joined with its sourcing_sources row."""
+
     sourcing_source_item_id: str
     variant_id: str
+    source_type: str
+    source_url: str
 
 
 class SourcingScanRepository:
@@ -82,6 +86,43 @@ class SourcingScanRepository:
                 """,
                 {"job_run_id": job_run_id, "status": status, "error_message": error_message},
             )
+
+    def fetch_active_sourcing_items(
+        self,
+        conn: psycopg.Connection,
+        *,
+        tenant_id: str,
+        limit: int,
+    ) -> list[SourcingDbItem]:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT
+                  ssi.id::text,
+                  ssi.variant_id::text,
+                  lower(ss.source_type) AS source_type,
+                  ssi.source_url
+                FROM sourcing_source_items ssi
+                JOIN sourcing_sources ss
+                  ON ss.id = ssi.sourcing_source_id
+                 AND ss.tenant_id = ssi.tenant_id
+                WHERE ssi.tenant_id = %(tenant_id)s
+                  AND ssi.active = TRUE
+                ORDER BY ssi.updated_at DESC NULLS LAST, ssi.created_at DESC
+                LIMIT %(limit)s
+                """,
+                {"tenant_id": tenant_id, "limit": int(limit)},
+            )
+            rows = cur.fetchall()
+        return [
+            SourcingDbItem(
+                sourcing_source_item_id=row[0],
+                variant_id=row[1],
+                source_type=str(row[2]),
+                source_url=str(row[3]),
+            )
+            for row in rows
+        ]
 
     def upsert_supplier_state_current(
         self,
