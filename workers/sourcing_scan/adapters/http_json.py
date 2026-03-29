@@ -13,6 +13,7 @@ from urllib.parse import urlparse
 import httpx
 
 from sourcing_scan.adapters.base import SupplierState
+from sourcing_scan.adapters.url_signing import apply_sourcing_url_hmac
 from sourcing_scan.repository import SourcingDbItem
 
 
@@ -126,10 +127,11 @@ def fetch_supplier_state_from_get_url(
     if not url or not is_safe_sourcing_http_url(url):
         return None
 
+    req_url = apply_sourcing_url_hmac(url)
     timeout = float(os.environ.get("SOURCING_HTTP_TIMEOUT_SEC", "15"))
     headers = _request_headers_for_sourcing_get()
     with httpx.Client(timeout=timeout) as client:
-        res = client.get(url, headers=headers)
+        res = client.get(req_url, headers=headers)
         res.raise_for_status()
         body = res.json()
 
