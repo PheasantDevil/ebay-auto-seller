@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import ipaddress
+import json
 import os
 import socket
 from decimal import Decimal
@@ -87,6 +88,34 @@ def is_safe_sourcing_http_url(url: str) -> bool:
     return all(ip.is_global for ip in ips)
 
 
+def _extra_headers_from_env() -> dict[str, str]:
+    """Optional JSON object of string header names to values (e.g. ``Authorization``)."""
+    raw = os.environ.get("SOURCING_HTTP_EXTRA_HEADERS_JSON", "").strip()
+    if not raw:
+        return {}
+    try:
+        obj = json.loads(raw)
+    except json.JSONDecodeError:
+        return {}
+    if not isinstance(obj, dict):
+        return {}
+    out: dict[str, str] = {}
+    for k, v in obj.items():
+        if isinstance(k, str) and isinstance(v, str):
+            out[k] = v
+    return out
+
+
+def _request_headers_for_sourcing_get() -> dict[str, str]:
+    ua = os.environ.get(
+        "SOURCING_HTTP_USER_AGENT",
+        "ebay-auto-seller-sourcing-scan/1.0",
+    )
+    merged: dict[str, str] = {"User-Agent": ua}
+    merged.update(_extra_headers_from_env())
+    return merged
+
+
 def fetch_supplier_state_from_get_url(
     *,
     url: str,
@@ -98,12 +127,9 @@ def fetch_supplier_state_from_get_url(
         return None
 
     timeout = float(os.environ.get("SOURCING_HTTP_TIMEOUT_SEC", "15"))
-    ua = os.environ.get(
-        "SOURCING_HTTP_USER_AGENT",
-        "ebay-auto-seller-sourcing-scan/1.0",
-    )
+    headers = _request_headers_for_sourcing_get()
     with httpx.Client(timeout=timeout) as client:
-        res = client.get(url, headers={"User-Agent": ua})
+        res = client.get(url, headers=headers)
         res.raise_for_status()
         body = res.json()
 
