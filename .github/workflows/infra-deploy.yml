@@ -1,0 +1,67 @@
+name: Infra Deploy (CDK + OIDC)
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: infra-deploy-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      AWS_ACCOUNT_ID: "051866032261"
+      AWS_REGION: "us-east-1"
+      CDK_DEFAULT_ACCOUNT: "051866032261"
+      CDK_DEFAULT_REGION: "us-east-1"
+      CDK_STACK_NAME: "EbayAutoSellerStack"
+      CDK_DEPLOY_ROLE_NAME: "cdk-deploy-role"
+      CDK_DEPLOY_ROLE_ARN: "arn:aws:iam::051866032261:role/cdk-deploy-role"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r infra/requirements.txt
+          npm install -g aws-cdk@2
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ env.CDK_DEPLOY_ROLE_ARN }}
+          role-session-name: cdk-deploy
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: CDK bootstrap (in Actions)
+        working-directory: infra
+        run: |
+          cdk bootstrap --app "python3 app.py" "aws://${AWS_ACCOUNT_ID}/${AWS_REGION}"
+
+      - name: CDK synth
+        working-directory: infra
+        run: |
+          cdk synth --app "python3 app.py"
+
+      - name: CDK deploy
+        working-directory: infra
+        run: |
+          cdk deploy "${CDK_STACK_NAME}" --app "python3 app.py" --require-approval never
+
