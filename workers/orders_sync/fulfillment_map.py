@@ -114,5 +114,7 @@ def _optional_amount(obj: object) -> tuple[Decimal | None, str | None]:
     try:
         d, c = _amount_to_decimal_and_currency(obj)
         return d, c
-    except ValueError, TypeError, KeyError:
-        return None, None
+    except Exception as exc:  # noqa: BLE001
+        if isinstance(exc, (ValueError, TypeError, KeyError)):
+            return None, None
+        raise
