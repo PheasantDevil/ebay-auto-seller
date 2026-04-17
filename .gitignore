@@ -216,3 +216,6 @@ dist/
 # Local CI venv (used by package.json scripts)
 .ci-venv/
 
+# AWS CDK
+infra/cdk.out/
+
