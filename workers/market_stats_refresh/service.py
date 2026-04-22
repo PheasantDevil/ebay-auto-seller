@@ -12,6 +12,7 @@ from decimal import Decimal
 import httpx
 import psycopg
 
+from common.db import connect
 from market_stats_refresh.logic import summarize_prices
 
 
@@ -28,7 +29,6 @@ class MarketStatsRefreshService:
     """Orchestrates token handling, eBay query, and market_stats persistence."""
 
     def __init__(self) -> None:
-        self.database_url = _require_env("DATABASE_URL")
         self.enc_key = _require_env("EBAY_TOKEN_ENCRYPTION_KEY")
         self.client_id = _require_env("EBAY_CLIENT_ID")
         self.client_secret = _require_env("EBAY_CLIENT_SECRET")
@@ -49,7 +49,7 @@ class MarketStatsRefreshService:
         idempotency_key: str | None = None,
     ) -> dict[str, object]:
         """Refresh market stats for a tenant and store results."""
-        with psycopg.connect(self.database_url) as conn:
+        with connect() as conn:
             job_run_id = self._create_job_run(
                 conn,
                 tenant_id=tenant_id,
