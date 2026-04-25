@@ -1,12 +1,9 @@
 {
+  "extends": "./.nuxt/tsconfig.json",
   "compilerOptions": {
-    "target": "ES2022",
-    "module": "ESNext",
-    "moduleResolution": "Bundler",
     "strict": true,
-    "types": ["vitest", "@types/node"],
-    "skipLibCheck": true,
+    "types": ["nuxt", "vitest", "@types/node"],
     "noEmit": true
   },
-  "include": ["src", "vitest.config.ts", ".nuxt"]
+  "include": ["src", "vitest.config.ts"]
 }

@@ -42,6 +42,9 @@
 </template>
 
 <script lang="ts" setup>
+import { ref } from 'vue';
+import { useRoute, useRuntimeConfig } from '#imports';
+
 type ResearchCandidate = {
   variant_id: string;
   variant_name: string;
