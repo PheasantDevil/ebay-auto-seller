@@ -42,8 +42,10 @@
    - `source_type` → フェッチャのレジストリパターンは維持する。  
    - **実装方針（現状）:** 各 EC の公式 API をワーカー内で完結させず、テナント（または連携先）の **HTTPS プロキシ** が `http_json` と同一の JSON 契約を返す前提。行の `source_url` または env の URL テンプレート＋`external_product_id` で GET 先を決定する。
 
-3. **`http_json` の運用強化（任意・必要に応じて）**  
-   - テナントごとの契約（署名 URL、追加ヘッダ、固定出口との組み合わせ等）を README・設定に反映。
+3. **`http_json` の運用強化（任意・必要に応じて）** — **実装済み**  
+   - 追加 HTTP ヘッダ: 環境変数 `SOURCING_HTTP_EXTRA_HEADERS_JSON`（JSON オブジェクト）。  
+   - 署名相当: クエリに `sourcing_ts` / `sourcing_sig`（HMAC-SHA256）を付与（`SOURCING_HTTP_SIGNING_ENABLED` + `SOURCING_HTTP_SIGNING_SECRET`）。  
+   - 固定出口: README に NAT/EIP の許可リスト運用を記載（実装はインフラ側）。
 
 ---
 
@@ -88,7 +90,7 @@
 | コンポーネント | 状態（概要） |
 |----------------|--------------|
 | `market-stats-refresh` | OAuth ＋ Browse API 連携、`market_stats` 更新。 |
-| `sourcing-scan` | DB アクティブ行 ＋ `http_json` / `amazon` / `walmart` / `target`（テナントプロキシ URL または env テンプレート＋`external_product_id`）、イベント `custom`、SSRF・`last_fetched_at`。 |
+| `sourcing-scan` | DB アクティブ行 ＋ `http_json` / `amazon` / `walmart` / `target`、テナントプロキシ、イベント `custom`、SSRF・`last_fetched_at`、任意の追加ヘッダ／HMAC クエリ署名。 |
 | `inventory-sync-ebay` | `inventory_current` → eBay 数量更新、フラグで Sell Inventory API 呼び出し。 |
 | `repricing` | 前提・ソーシング・市場 stats から固定価格更新。 |
 | `orders-sync` | イベント `items[]` による upsert。`source: "ebay_fulfillment"` で Sell Fulfillment `getOrders` 同期（第 1 波・項番 1 完了）。 |
@@ -110,3 +112,4 @@
 | 2026-03-28 | 初版: 第 1〜3 波、ワーカー深掘りの固定順、第 3 波にデプロイ先構築を明記。 |
 | 2026-03-28 | 第 1 波項番 1: `orders-sync` eBay Fulfillment REST 取り込み。 |
 | 2026-03-28 | 第 1 波項番 2: `amazon` / `walmart` / `target` ソーシングアダプタ（プロキシ JSON 契約）。 |
+| 2026-03-28 | 第 1 波項番 3: `http_json` 運用強化（追加ヘッダ env、HMAC クエリ署名、固定出口の README 記載）。 |
