@@ -1,0 +1,8 @@
+{
+  "name": "ebay-auto-seller-docs-scripts",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "puppeteer-core": "23.10.4"
+  }
+}
