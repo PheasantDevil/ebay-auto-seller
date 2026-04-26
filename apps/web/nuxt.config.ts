@@ -1,4 +1,5 @@
 export default defineNuxtConfig({
+  srcDir: 'src/',
   // SPA mode (no SSR).
   ssr: false,
   typescript: {

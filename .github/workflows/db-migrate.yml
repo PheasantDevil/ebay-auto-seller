@@ -1,0 +1,123 @@
+name: DB Migrate (Aurora + OIDC)
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "db/migrations/**"
+      - ".github/workflows/db-migrate.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: db-migrate-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    env:
+      AWS_REGION: "us-east-1"
+      CDK_DEPLOY_ROLE_ARN: "arn:aws:iam::051866032261:role/cdk-deploy-role"
+      DB_NAME: "ebayautoseller"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install boto3 psycopg[binary]
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ env.CDK_DEPLOY_ROLE_ARN }}
+          role-session-name: db-migrate
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Apply SQL migrations
+        run: |
+          python - <<'PY'
+          import json
+          import pathlib
+
+          import boto3
+          import psycopg
+
+          EXPORT_SECRET = "EbayAutoSellerAuroraAdminSecretArn"
+          EXPORT_HOST = "EbayAutoSellerAuroraEndpoint"
+          MIGRATIONS_DIR = pathlib.Path("db/migrations")
+
+          cf = boto3.client("cloudformation")
+          sm = boto3.client("secretsmanager")
+
+          exports = {}
+          token = None
+          while True:
+              kwargs = {"NextToken": token} if token else {}
+              resp = cf.list_exports(**kwargs)
+              for export in resp.get("Exports", []):
+                  exports[export["Name"]] = export["Value"]
+              token = resp.get("NextToken")
+              if not token:
+                  break
+
+          secret_arn = exports.get(EXPORT_SECRET)
+          host = exports.get(EXPORT_HOST)
+          if not secret_arn or not host:
+              raise RuntimeError("CloudFormation exports for Aurora are missing.")
+
+          secret_value = sm.get_secret_value(SecretId=secret_arn)["SecretString"]
+          secret_json = json.loads(secret_value)
+          user = secret_json["username"]
+          password = secret_json["password"]
+
+          with psycopg.connect(
+              host=host,
+              port=5432,
+              dbname="ebayautoseller",
+              user=user,
+              password=password,
+              connect_timeout=10,
+          ) as conn:
+              with conn.cursor() as cur:
+                  cur.execute(
+                      """
+                      CREATE TABLE IF NOT EXISTS schema_migrations (
+                        filename text PRIMARY KEY,
+                        applied_at timestamptz NOT NULL DEFAULT now()
+                      )
+                      """
+                  )
+                  conn.commit()
+
+              migration_files = sorted(MIGRATIONS_DIR.glob("*.sql"))
+              for migration in migration_files:
+                  with conn.cursor() as cur:
+                      cur.execute(
+                          "SELECT 1 FROM schema_migrations WHERE filename = %s",
+                          (migration.name,),
+                      )
+                      already = cur.fetchone() is not None
+                      if already:
+                          print(f"[skip] {migration.name}")
+                          continue
+
+                      sql = migration.read_text(encoding="utf-8")
+                      cur.execute(sql)
+                      cur.execute(
+                          "INSERT INTO schema_migrations (filename) VALUES (%s)",
+                          (migration.name,),
+                      )
+                      conn.commit()
+                      print(f"[applied] {migration.name}")
+          PY
