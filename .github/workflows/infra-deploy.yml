@@ -37,7 +37,7 @@ jobs:
       MARKET_STATS_DEFAULT_TENANT_ID_SCHEDULE_MINUTES: "60"
       ALERT_EMAIL: ${{ vars.ALERT_EMAIL }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Setup Python
         uses: actions/setup-python@v5
