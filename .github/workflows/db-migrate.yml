@@ -25,7 +25,7 @@ jobs:
       CDK_DEPLOY_ROLE_ARN: "arn:aws:iam::051866032261:role/cdk-deploy-role"
       DB_NAME: "ebayautoseller"
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Setup Python
         uses: actions/setup-python@v5
